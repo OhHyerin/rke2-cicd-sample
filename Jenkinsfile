@@ -1,8 +1,8 @@
 pipeline {
   agent any
   environment {
-    GITHUB_REPO  = "https://github.com/<your-user>/rke2-cicd-sample.git"
-    GITHUB_TOKEN = credentials('github-pat')
+    GITHUB_REPO  = "https://github.com/OhHyerin/rke2-cicd-sample.git"
+    GITHUB_TOKEN = credentials('github-password')
   }
   stages {
     stage('Test GitHub Connection') {
