@@ -65,10 +65,16 @@ podTemplate(
     }
 
     stage('Verify') {
-      container('dind') {
-        sh 'curl -u $NEXUS_USER:$NEXUS_PASS http://34.22.80.2:30110/v2/fw-image/tags/list'
-      }
-    }
+  container('dind') {
+    sh '''
+      # 1) 이미지가 레지스트리에 있는지 pull 해보기
+      docker pull 34.22.80.2:30110/fw-image:test
+
+      # 2) (선택) manifest inspect 으로 메타 정보 확인
+      docker manifest inspect 34.22.80.2:30110/fw-image:test
+    '''
+  }
+}
 
   }
 }
