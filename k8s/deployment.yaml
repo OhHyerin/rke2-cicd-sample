@@ -1,1 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fw-image-deploy
+  labels:
+    app: fw-image
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fw-image
+  template:
+    metadata:
+      labels:
+        app: fw-image
+    spec:
+      containers:
+      - name: web
+        image: 34.22.80.2:30110/fw-image:test
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
 
