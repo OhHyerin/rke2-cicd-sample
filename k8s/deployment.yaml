@@ -15,9 +15,10 @@ spec:
         app: fw-image
     spec:
       containers:
-      - name: web
-        image: 34.22.80.2:30110/fw-image:test
-        ports:
-        - containerPort: 80
-        imagePullPolicy: Always
-
+        - name: fw-image
+          image: 34.22.80.2:30110/fw-image:test   # ⬅️ 아까 빌드해서 Nexus에 push한 이미지
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+      # (필요하다면) imagePullSecrets:
+      #   - name: nexus-registry-secret
