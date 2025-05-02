@@ -1,42 +1,67 @@
 podTemplate(
-  label: 'kaniko',
-  // 기본 jnlp 에이전트 컨테이너
+  label: 'docker-build',
   containers: [
     containerTemplate(
-      name: 'jnlp', 
+      name: 'jnlp',
       image: 'jenkins/inbound-agent:latest',
       args: '${computer.jnlpmac} ${computer.name}'
     ),
-    // Kaniko 사이드카 컨테이너
     containerTemplate(
-      name: 'kaniko',
-      image: 'gcr.io/kaniko-project/executor:debug',
-      command: '/busybox/sh',
-      args: '-c sleep 3600',
-      ttyEnabled: true
+      name: 'dind',
+      image: 'docker:20.10.23-dind',
+      command: 'dockerd-entrypoint.sh',
+      args: '--host=tcp://0.0.0.0:2375 --storage-driver=overlay2',
+      privileged: true,
+      ttyEnabled: true,
+      envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')]
     )
   ],
-  // 워크스페이스 공유용 빈볼륨 (default가 이미 설정돼 있을 거예요)
   volumes: [
-    emptyDirVolume(mountPath: '/home/jenkins/agent', memory: false)
+    emptyDirVolume(mountPath: '/var/lib/docker', memory: false)
   ]
 ) {
-  node('kaniko') {
+  node('docker-build') {
+
     stage('Checkout') {
       checkout scm
     }
-    stage('Build & Push with Kaniko') {
-      // Kaniko 컨테이너 내에서만 실행
-      container('kaniko') {
+
+    stage('Test Docker') {
+      container('dind') {
         sh '''
-          /kaniko/executor \
-            --dockerfile=Dockerfile \
-            --context=${WORKSPACE} \
-            --destination=34.22.80.2:30110/fw-image:test \
-            --insecure \
-            --skip-tls-verify
+          timeout 30 sh -c '
+            until docker version > /dev/null 2>&1; do
+              echo "Waiting for Docker daemon..."
+              sleep 1
+            done
+          '
+          docker version
         '''
       }
     }
+
+    stage('Docker Login') {
+      container('dind') {
+        withCredentials([usernamePassword(credentialsId: 'nexus-admin', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+          sh 'docker login 34.22.80.2:30110 -u $NEXUS_USER -p $NEXUS_PASS'
+        }
+      }
+    }
+
+    stage('Build & Push') {
+      container('dind') {
+        sh '''
+          docker build -t 34.22.80.2:30110/fw-image:test .
+          docker push 34.22.80.2:30110/fw-image:test
+        '''
+      }
+    }
+
+    stage('Verify') {
+      container('dind') {
+        sh 'curl -u $NEXUS_USER:$NEXUS_PASS http://34.22.80.2:30110/v2/fw-image/tags/list'
+      }
+    }
+
   }
 }
