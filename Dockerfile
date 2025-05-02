@@ -1,3 +1,7 @@
-FROM alpine:3.19
-RUN echo "hello nexus" > /msg.txt
-CMD ["cat","/msg.txt"]
+# 베이스로 nginx:alpine 사용
+FROM nginx:alpine
+
+# 커스텀 웹페이지 복사
+COPY index.html /usr/share/nginx/html/index.html
+
+# nginx 기본 포트(80) 그대로 사용
