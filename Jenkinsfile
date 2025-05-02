@@ -11,8 +11,12 @@ podTemplate(
       image: 'docker:20.10.23-dind',
       command: 'dockerd-entrypoint.sh',
       args: '--host=tcp://0.0.0.0:2375 --storage-driver=overlay2',
-      privileged: true, ttyEnabled: true,
-      envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')]
+      privileged: true,
+      ttyEnabled: true,
+      envVars: [
+        envVar(key: 'DOCKER_HOST',       value: 'tcp://localhost:2375'),
+        envVar(key: 'DOCKER_TLS_CERTDIR', value: '')
+      ]
     )
   ],
   volumes: [
@@ -27,11 +31,10 @@ podTemplate(
 
     stage('Test Docker') {
       container('dind') {
-        // Docker daemon 준비 대기
         sh '''
-          timeout 30 sh -c '
+          timeout 60 sh -c '
             until docker version > /dev/null 2>&1; do
-              echo "Waiting for Docker daemon..."
+              echo "Waiting for Docker daemon (no TLS)..."
               sleep 1
             done
           '
