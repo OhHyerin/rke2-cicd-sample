@@ -18,19 +18,19 @@ pipeline {
             }
         }
 
-        stage('Build & Push with Kaniko') {
-            steps {
-                container('kaniko') {
-                    sh """
-                      /kaniko/executor \
-                        --dockerfile=Dockerfile \
-                        --context=/workspace \
-                        --destination=${REGISTRY}/${IMAGE}:${TAG} \
-                        --insecure \
-                        --skip-tls-verify
-                    """
-                }
-            }
-        }
+        // stage('Build & Push with Kaniko') {
+            // steps {
+                // container('kaniko') {
+            //         sh """
+            //           /kaniko/executor \
+            //             --dockerfile=Dockerfile \
+            //             --context=/workspace \
+            //             --destination=${REGISTRY}/${IMAGE}:${TAG} \
+            //             --insecure \
+            //             --skip-tls-verify
+            //         """
+            //     }
+            // }
+        // }
     }
 }
