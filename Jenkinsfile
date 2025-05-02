@@ -46,7 +46,7 @@ podTemplate(
     stage('Docker Login') {
       container('dind') {
         withCredentials([usernamePassword(
-          credentialsId: 'nexus-admin',
+          credentialsId: 'nexus-ci-user',
           usernameVariable: 'NEXUS_USER',
           passwordVariable: 'NEXUS_PASS'
         )]) {
