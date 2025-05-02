@@ -11,8 +11,7 @@ podTemplate(
       image: 'docker:20.10.23-dind',
       command: 'dockerd-entrypoint.sh',
       args: '--host=tcp://0.0.0.0:2375 --storage-driver=overlay2',
-      privileged: true,
-      ttyEnabled: true,
+      privileged: true, ttyEnabled: true,
       envVars: [envVar(key: 'DOCKER_HOST', value: 'tcp://localhost:2375')]
     )
   ],
@@ -28,6 +27,7 @@ podTemplate(
 
     stage('Test Docker') {
       container('dind') {
+        // Docker daemon 준비 대기
         sh '''
           timeout 30 sh -c '
             until docker version > /dev/null 2>&1; do
@@ -42,7 +42,11 @@ podTemplate(
 
     stage('Docker Login') {
       container('dind') {
-        withCredentials([usernamePassword(credentialsId: 'nexus-admin', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+        withCredentials([usernamePassword(
+          credentialsId: 'nexus-admin',
+          usernameVariable: 'NEXUS_USER',
+          passwordVariable: 'NEXUS_PASS'
+        )]) {
           sh 'docker login 34.22.80.2:30110 -u $NEXUS_USER -p $NEXUS_PASS'
         }
       }
