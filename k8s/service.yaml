@@ -4,7 +4,7 @@ metadata:
   name: fw-image-svc
 spec:
   selector:
-    app: fw-image
+    app: fw-images
   ports:
     - port: 80
       targetPort: 80
