@@ -10,7 +10,7 @@ podTemplate(
       name: 'dind',
       image: 'docker:20.10.23-dind',
       command: 'dockerd-entrypoint.sh',
-      args: '--host=tcp://0.0.0.0:2375 --storage-driver=overlay2',
+      args: '--host=tcp://0.0.0.0:2375 --storage-driver=overlay2 --insecure-registry=34.64.159.32:30110',
       privileged: true,
       ttyEnabled: true,
       envVars: [
