@@ -17,6 +17,12 @@ podTemplate(
         envVar(key: 'DOCKER_HOST',       value: 'tcp://localhost:2375'),
         envVar(key: 'DOCKER_TLS_CERTDIR', value: '')
       ]
+    ),
+    containerTemplate(
+      name: 'argocd',
+      image: 'argoproj/argocd:v2.9.5',
+      command: 'cat',
+      ttyEnabled: true
     )
   ],
   volumes: [
@@ -24,57 +30,46 @@ podTemplate(
   ]
 ) {
   node('docker-build') {
-
     stage('Checkout') {
       checkout scm
     }
 
-    stage('Test Docker') {
-      container('dind') {
-        sh '''
-          timeout 60 sh -c '
-            until docker version > /dev/null 2>&1; do
-              echo "Waiting for Docker daemon (no TLS)..."
-              sleep 1
-            done
-          '
-          docker version
-        '''
-      }
-    }
-
-    stage('Docker Login') {
+    stage('Build & Push') {
       container('dind') {
         withCredentials([usernamePassword(
           credentialsId: 'nexus-ci-user',
           usernameVariable: 'NEXUS_USER',
           passwordVariable: 'NEXUS_PASS'
         )]) {
-          sh 'docker login 34.64.159.32:30110 -u $NEXUS_USER -p $NEXUS_PASS'
+          sh '''
+            TAG="test1"
+            docker login 34.64.159.32:30110 -u $NEXUS_USER -p $NEXUS_PASS
+            docker build -t 34.64.159.32:30110/fw-images:${TAG} .
+            docker push 34.64.159.32:30110/fw-images:${TAG}
+          '''
         }
       }
     }
 
-    stage('Build & Push') {
-      container('dind') {
-        sh '''
-          docker build -t 34.64.159.32:30110/fw-images:test1 .
-          docker push 34.64.159.32:30110/fw-images:test1
-        '''
+    stage('Trigger ArgoCD Sync') {
+      container('argocd') {
+        withCredentials([usernamePassword(
+          credentialsId: 'argocd-cli-user',
+          usernameVariable: 'ARGOCD_USER',
+          passwordVariable: 'ARGOCD_PASS'
+        )]) {
+          def server = "34.64.159.32:30111"
+          sh """
+            argocd login ${server} \
+              --username ${ARGOCD_USER} \
+              --password ${ARGOCD_PASS} \
+              --plaintext
+
+            argocd app sync fw-image-app
+            argocd app wait fw-image-app --timeout 300
+          """
+        }
       }
     }
-
-    stage('Verify') {
-  container('dind') {
-    sh '''
-      # 1) 레지스트리에서 Pull 시도 → 성공 메시지로 검증
-      docker pull 34.64.159.32:30110/fw-images:test1
-
-      # 2) (선택) 로컬 이미지 리스트에 있는지 확인
-      docker images 34.64.159.32:30110/fw-images:test1
-    '''
-  }
-}
-
   }
 }
