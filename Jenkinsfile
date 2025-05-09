@@ -20,7 +20,7 @@ podTemplate(
     ),
     containerTemplate(
       name: 'argocd',
-      image: 'argoproj/argocd:v2.9.5',
+      image: 'quay.io/argoproj/argocd:v2.9.5',
       command: 'cat',
       ttyEnabled: true
     )
