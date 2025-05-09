@@ -30,6 +30,7 @@ podTemplate(
   ]
 ) {
   node('docker-build') {
+
     stage('Checkout') {
       checkout scm
     }
@@ -53,23 +54,32 @@ podTemplate(
 
     stage('Trigger ArgoCD Sync') {
       container('argocd') {
-        withCredentials([usernamePassword(
-          credentialsId: 'argocd-cli-user',
-          usernameVariable: 'ARGOCD_USER',
-          passwordVariable: 'ARGOCD_PASS'
-        )]) {
-          def server = "34.64.159.32:30111"
-          sh """
-            argocd login ${server} \
-              --username ${ARGOCD_USER} \
-              --password ${ARGOCD_PASS} \
-              --plaintext
+        withCredentials([
+          string(credentialsId: 'argocd-server',   variable: 'ARGOCD_SERVER'),
+          usernamePassword(
+            credentialsId: 'argocd-cli-user',
+            usernameVariable: 'ARGOCD_USER',
+            passwordVariable: 'ARGOCD_PASS'
+          )
+        ]) {
+          sh '''#!/bin/sh -eux
+            # 1) 클라이언트 버전 확인
+            argocd version --client
 
+            # 2) 로그인 (HTTP: --plaintext, HTTPS self-signed: --insecure)
+            argocd login $ARGOCD_SERVER \
+              --username $ARGOCD_USER \
+              --password $ARGOCD_PASS \
+              --plaintext \
+              --insecure
+
+            # 3) 앱 동기화 및 완료 대기
             argocd app sync fw-image-app
             argocd app wait fw-image-app --timeout 300
-          """
+          '''
         }
       }
     }
-  }
-}
+
+  } // node
+} // podTemplate
