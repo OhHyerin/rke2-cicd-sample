@@ -35,29 +35,57 @@ podTemplate(
       checkout scm
     }
 
-    stage('Build & Push') {
+    stage('Test Docker') {
+      container('dind') {
+        sh '''
+          timeout 60 sh -c '
+            until docker version > /dev/null 2>&1; do
+              echo "Waiting for Docker daemon (no TLS)..."
+              sleep 1
+            done
+          '
+          docker version
+        '''
+      }
+    }
+
+    stage('Docker Login') {
       container('dind') {
         withCredentials([usernamePassword(
           credentialsId: 'nexus-ci-user',
           usernameVariable: 'NEXUS_USER',
           passwordVariable: 'NEXUS_PASS'
         )]) {
-          sh '''
-            TAG="test1"
-            # HTTP 스킴을 붙여서 HTTPS 시도를 방지
-            docker login http://34.64.159.32:30110 -u $NEXUS_USER -p $NEXUS_PASS
-
-            docker build -t 34.64.159.32:30110/fw-images:${TAG} .
-            docker push 34.64.159.32:30110/fw-images:${TAG}
-          '''
+          sh 'docker login 34.64.159.32:30110 -u $NEXUS_USER -p $NEXUS_PASS'
         }
+      }
+    }
+
+    stage('Build & Push') {
+      container('dind') {
+        sh '''
+          docker build -t 34.64.159.32:30110/fw-images:test1 .
+          docker push 34.64.159.32:30110/fw-images:test1
+        '''
+      }
+    }
+
+    stage('Verify') {
+      container('dind') {
+        sh '''
+          # 1) 레지스트리에서 Pull 시도 → 성공 메시지로 검증
+          docker pull 34.64.159.32:30110/fw-images:test1
+
+          # 2) (선택) 로컬 이미지 리스트에 있는지 확인
+          docker images 34.64.159.32:30110/fw-images:test1
+        '''
       }
     }
 
     stage('Trigger ArgoCD Sync') {
       container('argocd') {
         withCredentials([
-          string(credentialsId: 'argocd-server', variable: 'ARGOCD_SERVER'),
+          string(credentialsId: 'argocd-server',   variable: 'ARGOCD_SERVER'),
           usernamePassword(
             credentialsId: 'argocd-cli-user',
             usernameVariable: 'ARGOCD_USER',
@@ -68,22 +96,22 @@ podTemplate(
             # 1) CLI 버전 확인
             argocd version --client
 
-            # 2) 로그인 (HTTP일 땐 --plaintext, HTTPS self-signed일 땐 --insecure)
+            # 2) Argo CD 로그인
             argocd login $ARGOCD_SERVER \
               --username $ARGOCD_USER \
               --password $ARGOCD_PASS \
               --plaintext \
               --insecure
 
-            # 3) Application 동기화
+            # 3) 애플리케이션 동기화
             argocd app sync fw-image-app
 
-            # 4) 동기화 완료 대기 (timeout 5분)
+            # 4) 동기화 완료 대기 (최대 5분)
             argocd app wait fw-image-app --timeout 300
           '''
         }
       }
     }
 
-  } // node
-} // podTemplate
+  }
+}
