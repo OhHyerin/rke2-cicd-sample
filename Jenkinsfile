@@ -58,8 +58,8 @@ podTemplate(
     stage('Build & Push') {
       container('dind') {
         sh '''
-          docker build -t 34.64.159.32:30110/fw-images:test .
-          docker push 34.64.159.32:30110/fw-images:test
+          docker build -t 34.64.159.32:30110/fw-images:test1 .
+          docker push 34.64.159.32:30110/fw-images:test1
         '''
       }
     }
@@ -68,10 +68,10 @@ podTemplate(
   container('dind') {
     sh '''
       # 1) 레지스트리에서 Pull 시도 → 성공 메시지로 검증
-      docker pull 34.64.159.32:30110/fw-images:test
+      docker pull 34.64.159.32:30110/fw-images:test1
 
       # 2) (선택) 로컬 이미지 리스트에 있는지 확인
-      docker images 34.64.159.32:30110/fw-images:test
+      docker images 34.64.159.32:30110/fw-images:test1
     '''
   }
 }
