@@ -44,7 +44,9 @@ podTemplate(
         )]) {
           sh '''
             TAG="test1"
-            docker login 34.64.159.32:30110 -u $NEXUS_USER -p $NEXUS_PASS
+            # HTTP 스킴을 붙여서 HTTPS 시도를 방지
+            docker login http://34.64.159.32:30110 -u $NEXUS_USER -p $NEXUS_PASS
+
             docker build -t 34.64.159.32:30110/fw-images:${TAG} .
             docker push 34.64.159.32:30110/fw-images:${TAG}
           '''
@@ -55,7 +57,7 @@ podTemplate(
     stage('Trigger ArgoCD Sync') {
       container('argocd') {
         withCredentials([
-          string(credentialsId: 'argocd-server',   variable: 'ARGOCD_SERVER'),
+          string(credentialsId: 'argocd-server', variable: 'ARGOCD_SERVER'),
           usernamePassword(
             credentialsId: 'argocd-cli-user',
             usernameVariable: 'ARGOCD_USER',
@@ -63,18 +65,20 @@ podTemplate(
           )
         ]) {
           sh '''#!/bin/sh -eux
-            # 1) 클라이언트 버전 확인
+            # 1) CLI 버전 확인
             argocd version --client
 
-            # 2) 로그인 (HTTP: --plaintext, HTTPS self-signed: --insecure)
+            # 2) 로그인 (HTTP일 땐 --plaintext, HTTPS self-signed일 땐 --insecure)
             argocd login $ARGOCD_SERVER \
               --username $ARGOCD_USER \
               --password $ARGOCD_PASS \
               --plaintext \
               --insecure
 
-            # 3) 앱 동기화 및 완료 대기
+            # 3) Application 동기화
             argocd app sync fw-image-app
+
+            # 4) 동기화 완료 대기 (timeout 5분)
             argocd app wait fw-image-app --timeout 300
           '''
         }
