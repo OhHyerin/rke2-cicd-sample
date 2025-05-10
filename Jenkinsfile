@@ -97,6 +97,7 @@ podTemplate(
           )
         ]) {
           sh '''
+          cd $WORKSPACE
             # Alpine 기반이면:
         apk add --no-cache git
 
