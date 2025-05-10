@@ -4,11 +4,7 @@ podTemplate(
     containerTemplate(
       name: 'jnlp',
       image: 'jenkins/inbound-agent:latest',
-      args: '${computer.jnlpmac} ${computer.name}',
-      securityContext: [
-        runAsUser: 0,
-        runAsGroup: 0
-      ]
+      args: '${computer.jnlpmac} ${computer.name}'
     ),
     containerTemplate(
       name: 'dind',
@@ -93,25 +89,21 @@ podTemplate(
 
     stage('Update Manifests & Push') {
       container('jnlp') {
-        withCredentials([
-          usernamePassword(
-            credentialsId: 'github-idpw',
-            usernameVariable: 'GIT_USER',
-            passwordVariable: 'GIT_PASS'
-          )
-        ]) {
-          sh '''
-            set -eux
-            cd "$WORKSPACE"
-            git config user.email "gpfls0506@gmail.com"
-            git config user.name  "OhHyerin"
-            git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
-            sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
-            git add k8s/deployment.yaml
-            git commit -m "ci: bump image tag to ${TAG}"
-            git push origin main
-         '''
-        }
+        sshagent(credentials: ['github-ssh-key']) {
+      sh '''
+        set -eux
+
+        # manifest 안 image 태그 교체
+        sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
+
+        # 커밋
+        git add k8s/deployment.yaml
+        git commit -m "ci: bump image tag to ${TAG}"
+
+        # SSH URL로 Push
+        git push git@github.com:OhHyerin/rke2-cicd-sample.git HEAD:main
+      '''
+    }
       }
     }
 
