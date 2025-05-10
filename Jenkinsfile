@@ -64,9 +64,13 @@ podTemplate(
 
     stage('Build & Push') {
       container('dind') {
+        script {
+          // 현재 Git 커밋 SHA 앞 7자리로 태그 생성
+          TAG = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+        }
         sh '''
-          docker build -t 34.64.159.32:30110/fw-images:test1 .
-          docker push 34.64.159.32:30110/fw-images:test1
+          docker build -t 34.64.159.32:30110/fw-images:${TAG} .
+          docker push 34.64.159.32:30110/fw-images:${TAG}
         '''
       }
     }
@@ -75,10 +79,10 @@ podTemplate(
       container('dind') {
         sh '''
           # 1) 레지스트리에서 Pull 시도 → 성공 메시지로 검증
-          docker pull 34.64.159.32:30110/fw-images:test1
+          docker pull 34.64.159.32:30110/fw-images:${TAG}
 
           # 2) (선택) 로컬 이미지 리스트에 있는지 확인
-          docker images 34.64.159.32:30110/fw-images:test1
+          docker images 34.64.159.32:30110/fw-images:${TAG}
         '''
       }
     }
@@ -111,6 +115,10 @@ stage('Trigger ArgoCD Sync') {
           --password $ARGOCD_PASS \
           --plaintext \
           --insecure
+
+        # Deployment 매니페스트의 image.tag 값을 동적 TAG로 설정
+          /usr/local/bin/argocd app set fw-image-app -p image.tag=${TAG}
+
 
         # 4) 애플리케이션 동기화 및 완료 대기
         /usr/local/bin/argocd app sync fw-image-app
