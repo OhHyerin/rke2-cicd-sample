@@ -82,36 +82,39 @@ podTemplate(
       }
     }
 
-    stage('Trigger ArgoCD Sync') {
-      container('argocd') {
-        withCredentials([
-          string(credentialsId: 'argocd-server',   variable: 'ARGOCD_SERVER'),
-          usernamePassword(
-            credentialsId: 'argocd-cli-user',
-            usernameVariable: 'ARGOCD_USER',
-            passwordVariable: 'ARGOCD_PASS'
-          )
-        ]) {
-          sh '''#!/bin/sh -eux
-            # 1) CLI 버전 확인
-            argocd version --client
+stage('Trigger ArgoCD Sync') {
+  container('argocd') {
+    withCredentials([
+      string(credentialsId: 'argocd-server',   variable: 'ARGOCD_SERVER'),
+      usernamePassword(
+        credentialsId: 'argocd-cli-user',
+        usernameVariable: 'ARGOCD_USER',
+        passwordVariable: 'ARGOCD_PASS'
+      )
+    ]) {
+      // shebang 없이, 매 줄 -eux 옵션 직접 추가
+      sh '''
+        set -eux
 
-            # 2) Argo CD 로그인
-            argocd login $ARGOCD_SERVER \
-              --username $ARGOCD_USER \
-              --password $ARGOCD_PASS \
-              --plaintext \
-              --insecure
+        # 1) CLI 버전 확인
+        argocd version --client
 
-            # 3) 애플리케이션 동기화
-            argocd app sync fw-image-app
+        # 2) 로그인 (HTTP라면 --plaintext, HTTPS self-signed라면 --insecure)
+        argocd login $ARGOCD_SERVER \
+          --username $ARGOCD_USER \
+          --password $ARGOCD_PASS \
+          --plaintext \
+          --insecure
 
-            # 4) 동기화 완료 대기 (최대 5분)
-            argocd app wait fw-image-app --timeout 300
-          '''
-        }
-      }
+        # 3) 애플리케이션 동기화
+        argocd app sync fw-image-app
+
+        # 4) 동기화 완료 대기 (최대 5분)
+        argocd app wait fw-image-app --timeout 300
+      '''
     }
+  }
+}  //Trigger ArgoCD Sync
 
   }
 }
