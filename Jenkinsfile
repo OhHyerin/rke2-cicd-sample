@@ -97,15 +97,20 @@ podTemplate(
           )
         ]) {
           sh '''
-            # k8s/deployment.yaml 의 이미지 태그를 bump
+            # 1) Git author 정보 설정
+            git config user.email "gpfls0506@gmail.com"
+            git config user.name  "OhHyerin"
+
+            # 2) k8s/deployment.yaml 의 이미지 태그를 bump
             sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
 
-            # 커밋
+            # 3) 커밋
             git add k8s/deployment.yaml
             git commit -m "ci: bump image tag to ${TAG}"
 
-            # 직접 Push (remote URL 을 변경하지 않고 여기서 credentials 포함)
+            # 4) Push (URL에 credentials 직접 포함)
             git push https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git HEAD:main
+          
          '''
         }
       }
