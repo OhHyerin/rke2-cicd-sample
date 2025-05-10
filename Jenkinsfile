@@ -88,7 +88,7 @@ podTemplate(
     }
 
     stage('Update Manifests & Push') {
-      container('dind') {
+      container('jnlp') {
         withCredentials([
           usernamePassword(
             credentialsId: 'github-idpw',
