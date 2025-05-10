@@ -17,7 +17,7 @@ spec:
       containers:
         - name: fw-images
           image: 34.64.159.32:30110/fw-images:test1   # ⬅️ 아까 빌드해서 Nexus에 push한 이미지
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
       # (필요하다면) imagePullSecrets:
