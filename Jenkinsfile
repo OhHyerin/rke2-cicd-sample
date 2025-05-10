@@ -34,6 +34,10 @@ podTemplate(
 
     stage('Checkout') {
       checkout scm
+      script {
+        env.TAG = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+        echo "Using TAG=${env.TAG}"
+      }
     }
 
     stage('Test Docker') {
@@ -64,10 +68,6 @@ podTemplate(
 
     stage('Build & Push') {
       container('dind') {
-        script {
-          // 현재 Git 커밋 SHA 앞 7자리로 태그 생성
-          TAG = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
-        }
         sh '''
           docker build -t 34.64.159.32:30110/fw-images:${TAG} .
           docker push 34.64.159.32:30110/fw-images:${TAG}
@@ -118,7 +118,6 @@ stage('Trigger ArgoCD Sync') {
 
         # Deployment 매니페스트의 image.tag 값을 동적 TAG로 설정
           /usr/local/bin/argocd app set fw-image-app -p image.tag=${TAG}
-
 
         # 4) 애플리케이션 동기화 및 완료 대기
         /usr/local/bin/argocd app sync fw-image-app
