@@ -99,23 +99,26 @@ podTemplate(
           sh '''
             set -eux
 
-          # Git author 설정
-          git config user.email "gpfls0506@gmail.com"
-          git config user.name  "OhHyerin"
+        # 1) Git 설치 (docker:dind 이미지가 Alpine 기반이므로 apk로)
+        apk add --no-cache git
 
-          # deployment.yaml의 image 태그를 bump
-          sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
+        # 2) Git author 설정
+        git config user.email "gpfls0506@gmail.com"
+        git config user.name  "OhHyerin"
 
-          # 커밋
-          git add k8s/deployment.yaml
-          git commit -m "ci: bump image tag to ${TAG}"
+        # 3) deployment.yaml의 이미지 태그를 bump
+        sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
 
-          # origin URL을 자격증명 포함 URL로 변경
-          git remote set-url origin \
-            https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
+        # 4) 커밋
+        git add k8s/deployment.yaml
+        git commit -m "ci: bump image tag to ${TAG}"
 
-          # main 브랜치로 푸시
-          git push origin main
+        # 5) origin URL 자격증명 포함으로 교체
+        git remote set-url origin \
+          https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
+
+        # 6) main 브랜치로 푸시
+        git push origin main
          '''
         }
       }
