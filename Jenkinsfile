@@ -4,7 +4,7 @@ podTemplate(
     containerTemplate(
       name: 'jnlp',
       image: 'jenkins/inbound-agent:latest',
-      args: '${computer.jnlpmac} ${computer.name}'
+      args: '${computer.jnlpmac} ${computer.name}',
       securityContext: [
         runAsUser: 0,
         runAsGroup: 0
