@@ -88,7 +88,7 @@ podTemplate(
     }
 
     stage('Update Manifests & Push') {
-      container('jnlp') {
+      container('dind') {
         withCredentials([
           usernamePassword(
             credentialsId: 'github-idpw',
@@ -99,23 +99,26 @@ podTemplate(
           sh '''
             set -eux
 
-            # jnlp 에 git 설치
-            apt-get update && apt-get install -y git
+            # 1) dind 에 git 설치
+            apk add --no-cache git
 
             cd "$WORKSPACE"
 
-            # Git author 설정
+            # 2) Git author 설정
             git config user.email "gpfls0506@gmail.com"
             git config user.name  "OhHyerin"
 
-            # deployment.yaml 이미지 태그 업데이트
+            # 3) remote URL 을 credentials 포함 형태로 변경
+            git remote set-url origin \
+              https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
+
+            # 4) 이미지 태그 업데이트
             sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
 
-            # 커밋 & 푸시
+            # 5) 커밋 & 푸시
             git add k8s/deployment.yaml
             git commit -m "ci: bump image tag to ${TAG}"
-            git push https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git HEAD:main
-          
+            git push origin main
          '''
         }
       }
