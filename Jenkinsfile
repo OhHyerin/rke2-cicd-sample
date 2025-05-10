@@ -88,7 +88,7 @@ podTemplate(
     }
 
     stage('Update Manifests & Push') {
-      container('dind') {
+      container('jnlp') {
         withCredentials([
           usernamePassword(
             credentialsId: 'github-idpw',
@@ -97,21 +97,12 @@ podTemplate(
           )
         ]) {
           sh '''
-            cd $WORKSPACE
-            apk add --no-cache git
- 
-            # Git author 설정
             git config user.email "gpfls0506@gmail.com"
-            git config user.name  "OhHyerin"
-
-            # HTTPS 인증 URL로 origin 재설정
+            git config user.name  "Jenkins CI"
             git remote set-url origin \
               https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
 
-            # image 태그 치환
             sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
-
-            # 커밋 & 푸시
             git add k8s/deployment.yaml
             git commit -m "ci: bump image tag to ${TAG}"
             git push origin HEAD:main
