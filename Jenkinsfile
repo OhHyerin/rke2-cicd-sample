@@ -136,8 +136,8 @@ stage('Trigger ArgoCD Sync') {
           --plaintext \
           --insecure
 
-        // # Deployment 매니페스트의 image.tag 값을 동적 TAG로 설정
-        //   /usr/local/bin/argocd app set fw-image-app -p image.tag=${TAG}
+        # # Deployment 매니페스트의 image.tag 값을 동적 TAG로 설정
+        #   /usr/local/bin/argocd app set fw-image-app -p image.tag=${TAG}
 
         # 4) 애플리케이션 동기화 및 완료 대기
         /usr/local/bin/argocd app sync fw-image-app
