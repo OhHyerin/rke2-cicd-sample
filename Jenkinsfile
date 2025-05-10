@@ -88,7 +88,7 @@ podTemplate(
     }
 
     stage('Update Manifests & Push') {
-      container('dind') {
+      container('jnlp') {
         withCredentials([
           usernamePassword(
             credentialsId: 'github-idpw',
@@ -99,26 +99,23 @@ podTemplate(
           sh '''
             set -eux
 
-        # 1) Git 설치 (docker:dind 이미지가 Alpine 기반이므로 apk로)
-        apk add --no-cache git
+            # jnlp 에 git 설치
+            apt-get update && apt-get install -y git
 
-        # 2) Git author 설정
-        git config user.email "gpfls0506@gmail.com"
-        git config user.name  "OhHyerin"
+            cd "$WORKSPACE"
 
-        # 3) deployment.yaml의 이미지 태그를 bump
-        sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
+            # Git author 설정
+            git config user.email "gpfls0506@gmail.com"
+            git config user.name  "OhHyerin"
 
-        # 4) 커밋
-        git add k8s/deployment.yaml
-        git commit -m "ci: bump image tag to ${TAG}"
+            # deployment.yaml 이미지 태그 업데이트
+            sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
 
-        # 5) origin URL 자격증명 포함으로 교체
-        git remote set-url origin \
-          https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
-
-        # 6) main 브랜치로 푸시
-        git push origin main
+            # 커밋 & 푸시
+            git add k8s/deployment.yaml
+            git commit -m "ci: bump image tag to ${TAG}"
+            git push https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git HEAD:main
+          
          '''
         }
       }
