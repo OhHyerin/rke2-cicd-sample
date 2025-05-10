@@ -20,8 +20,9 @@ podTemplate(
     ),
     containerTemplate(
       name: 'argocd',
-      image: 'bitnami/argocd-cli:2.9.5',
-      command: 'cat',
+      image: 'alpine:3.18',
+      command: 'sh',
+      args: '-c "apk add --no-cache curl && sleep infinity"',
       ttyEnabled: true
     )
   ],
