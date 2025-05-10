@@ -88,7 +88,7 @@ podTemplate(
     }
 
     stage('Update Manifests & Push') {
-      container('jnlp') {
+      container('dind') {
         withCredentials([
           usernamePassword(
             credentialsId: 'github-idpw',
@@ -97,21 +97,24 @@ podTemplate(
           )
         ]) {
           sh '''
-            # Git author 정보 설정
-            git config user.email "gpfls0506@gmail.com"
-            git config user.name  "OhHyerin"
+            # Alpine 기반이면:
+        apk add --no-cache git
 
-            # 인증 포함된 origin URL로 변경
-            git remote set-url origin \
-              https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
+        # Git author 설정
+        git config user.email "gpfls0506@gmail.com"
+        git config user.name  "OhHyerin"
 
-            # deployment.yaml의 image 태그 업데이트
-            sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
+        # HTTPS 인증 URL로 origin 재설정
+        git remote set-url origin \
+          https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
 
-            # 커밋 & 푸시
-            git add k8s/deployment.yaml
-            git commit -m "ci: bump image tag to ${TAG}"
-            git push origin HEAD:main
+        # image 태그 치환
+        sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
+
+        # 커밋 & 푸시
+        git add k8s/deployment.yaml
+        git commit -m "ci: bump image tag to ${TAG}"
+        git push origin HEAD:main
           '''
         }
       }
