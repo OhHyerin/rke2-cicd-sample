@@ -87,6 +87,36 @@ podTemplate(
       }
     }
 
+    stage('Update Manifests & Push') {
+      container('dind') {
+        withCredentials([
+          usernamePassword(
+            credentialsId: 'github-idpw',
+            usernameVariable: 'GIT_USER',
+            passwordVariable: 'GIT_PASS'
+          )
+        ]) {
+          sh '''
+            # Git author 정보 설정
+            git config user.email "gpfls0506@gmail.com"
+            git config user.name  "OhHyerin"
+
+            # 인증 포함된 origin URL로 변경
+            git remote set-url origin \
+              https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
+
+            # deployment.yaml의 image 태그 업데이트
+            sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
+
+            # 커밋 & 푸시
+            git add k8s/deployment.yaml
+            git commit -m "ci: bump image tag to ${TAG}"
+            git push origin HEAD:main
+          '''
+        }
+      }
+    }
+
 stage('Trigger ArgoCD Sync') {
   container('argocd') {
     withCredentials([
