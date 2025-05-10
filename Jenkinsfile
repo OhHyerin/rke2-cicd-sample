@@ -88,7 +88,7 @@ podTemplate(
     }
 
     stage('Update Manifests & Push') {
-      container('jnlp') {
+      container('dind') {
         withCredentials([
           usernamePassword(
             credentialsId: 'github-idpw',
@@ -97,20 +97,25 @@ podTemplate(
           )
         ]) {
           sh '''
-            # 1) Git author 정보 설정
-            git config user.email "gpfls0506@gmail.com"
-            git config user.name  "OhHyerin"
+            set -eux
 
-            # 2) k8s/deployment.yaml 의 이미지 태그를 bump
-            sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
+          # Git author 설정
+          git config user.email "gpfls0506@gmail.com"
+          git config user.name  "OhHyerin"
 
-            # 3) 커밋
-            git add k8s/deployment.yaml
-            git commit -m "ci: bump image tag to ${TAG}"
+          # deployment.yaml의 image 태그를 bump
+          sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
 
-            # 4) Push (URL에 credentials 직접 포함)
-            git push https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git HEAD:main
-          
+          # 커밋
+          git add k8s/deployment.yaml
+          git commit -m "ci: bump image tag to ${TAG}"
+
+          # origin URL을 자격증명 포함 URL로 변경
+          git remote set-url origin \
+            https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
+
+          # main 브랜치로 푸시
+          git push origin main
          '''
         }
       }
