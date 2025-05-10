@@ -5,6 +5,10 @@ podTemplate(
       name: 'jnlp',
       image: 'jenkins/inbound-agent:latest',
       args: '${computer.jnlpmac} ${computer.name}'
+      securityContext: [
+        runAsUser: 0,
+        runAsGroup: 0
+      ]
     ),
     containerTemplate(
       name: 'dind',
@@ -88,7 +92,7 @@ podTemplate(
     }
 
     stage('Update Manifests & Push') {
-      container('dind') {
+      container('jnlp') {
         withCredentials([
           usernamePassword(
             credentialsId: 'github-idpw',
@@ -98,24 +102,11 @@ podTemplate(
         ]) {
           sh '''
             set -eux
-
-            # 1) dind 에 git 설치
-            apk add --no-cache git
-
             cd "$WORKSPACE"
-
-            # 2) Git author 설정
             git config user.email "gpfls0506@gmail.com"
             git config user.name  "OhHyerin"
-
-            # 3) remote URL 을 credentials 포함 형태로 변경
-            git remote set-url origin \
-              https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
-
-            # 4) 이미지 태그 업데이트
+            git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
             sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
-
-            # 5) 커밋 & 푸시
             git add k8s/deployment.yaml
             git commit -m "ci: bump image tag to ${TAG}"
             git push origin main
