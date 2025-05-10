@@ -34,10 +34,10 @@ podTemplate(
 
     stage('Checkout') {
       checkout scm
-      script {
-        env.TAG = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
-        echo "Using TAG=${env.TAG}"
-      }
+      // script {
+      //   env.TAG = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+      //   echo "Using TAG=${env.TAG}"
+      // }
     }
 
     stage('Test Docker') {
@@ -69,8 +69,8 @@ podTemplate(
     stage('Build & Push') {
       container('dind') {
         sh '''
-          docker build -t 34.64.159.32:30110/fw-images:${TAG} .
-          docker push 34.64.159.32:30110/fw-images:${TAG}
+          docker build -t 34.64.159.32:30110/fw-images:test1 .
+          docker push 34.64.159.32:30110/fw-images:test1
         '''
       }
     }
@@ -79,33 +79,33 @@ podTemplate(
       container('dind') {
         sh '''
           # 1) 레지스트리에서 Pull 시도 → 성공 메시지로 검증
-          docker pull 34.64.159.32:30110/fw-images:${TAG}
+          docker pull 34.64.159.32:30110/fw-images:test1
 
           # 2) (선택) 로컬 이미지 리스트에 있는지 확인
-          docker images 34.64.159.32:30110/fw-images:${TAG}
+          docker images 34.64.159.32:30110/fw-images:test1
         '''
       }
     }
 
-    stage('Update Manifests & Push') {
-      container('jnlp') {
-        sshagent(credentials: ['github-ssh-key']) {
-      sh '''
-        set -eux
+    // stage('Update Manifests & Push') {
+    //   container('jnlp') {
+    //     sshagent(credentials: ['github-ssh-key']) {
+    //   sh '''
+    //     set -eux
 
-        # manifest 안 image 태그 교체
-        sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
+    //     # manifest 안 image 태그 교체
+    //     sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
 
-        # 커밋
-        git add k8s/deployment.yaml
-        git commit -m "ci: bump image tag to ${TAG}"
+    //     # 커밋
+    //     git add k8s/deployment.yaml
+    //     git commit -m "ci: bump image tag to ${TAG}"
 
-        # SSH URL로 Push
-        git push git@github.com:OhHyerin/rke2-cicd-sample.git HEAD:main
-      '''
-    }
-      }
-    }
+    //     # SSH URL로 Push
+    //     git push git@github.com:OhHyerin/rke2-cicd-sample.git HEAD:main
+    //   '''
+    // }
+    //   }
+    // }
 
 stage('Trigger ArgoCD Sync') {
   container('argocd') {
@@ -136,8 +136,8 @@ stage('Trigger ArgoCD Sync') {
           --plaintext \
           --insecure
 
-        # Deployment 매니페스트의 image.tag 값을 동적 TAG로 설정
-          /usr/local/bin/argocd app set fw-image-app -p image.tag=${TAG}
+        // # Deployment 매니페스트의 image.tag 값을 동적 TAG로 설정
+        //   /usr/local/bin/argocd app set fw-image-app -p image.tag=${TAG}
 
         # 4) 애플리케이션 동기화 및 완료 대기
         /usr/local/bin/argocd app sync fw-image-app
