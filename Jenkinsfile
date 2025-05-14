@@ -32,13 +32,11 @@ podTemplate(
 ) {
   node('docker-build') {
 
-    def TAG = ''
-
     stage('Checkout') {
       checkout scm
       script {
-        TAG = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
-        echo "Using TAG=${TAG}"
+        env.TAG = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+        echo "Using TAG=${env.TAG}"
       }
     }
 
