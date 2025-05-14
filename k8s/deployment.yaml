@@ -5,6 +5,7 @@ metadata:
   labels:
     app: fw-images
 spec:
+  revisionHistoryLimit: 3
   replicas: 3
   selector:
     matchLabels:
