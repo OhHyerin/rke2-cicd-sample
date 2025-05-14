@@ -32,12 +32,14 @@ podTemplate(
 ) {
   node('docker-build') {
 
+    def TAG = ''
+
     stage('Checkout') {
       checkout scm
-      // script {
-      //   env.TAG = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
-      //   echo "Using TAG=${env.TAG}"
-      // }
+      script {
+        TAG = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+        echo "Using TAG=${TAG}"
+      }
     }
 
     stage('Test Docker') {
@@ -69,43 +71,42 @@ podTemplate(
     stage('Build & Push') {
       container('dind') {
         sh '''
-          docker build -t 34.64.159.32:30110/fw-images:test .
-          docker push 34.64.159.32:30110/fw-images:test
+          docker build -t 34.64.159.32:30110/fw-images:${TAG} .
+          docker push 34.64.159.32:30110/fw-images:${TAG}
         '''
       }
     }
 
-    stage('Verify') {
-      container('dind') {
-        sh '''
-          # 1) 레지스트리에서 Pull 시도 → 성공 메시지로 검증
-          docker pull 34.64.159.32:30110/fw-images:test
+    // stage('Verify') {
+    //   container('dind') {
+    //     sh '''
+    //       # 1) 레지스트리에서 Pull 시도 → 성공 메시지로 검증
+    //       docker pull 34.64.159.32:30110/fw-images:test
 
-          # 2) (선택) 로컬 이미지 리스트에 있는지 확인
-          docker images 34.64.159.32:30110/fw-images:test
-        '''
-      }
-    }
-
-    // stage('Update Manifests & Push') {
-    //   container('jnlp') {
-    //     sshagent(credentials: ['github-ssh-key']) {
-    //   sh '''
-    //     set -eux
-
-    //     # manifest 안 image 태그 교체
-    //     sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
-
-    //     # 커밋
-    //     git add k8s/deployment.yaml
-    //     git commit -m "ci: bump image tag to ${TAG}"
-
-    //     # SSH URL로 Push
-    //     git push git@github.com:OhHyerin/rke2-cicd-sample.git HEAD:main
-    //   '''
-    // }
+    //       # 2) (선택) 로컬 이미지 리스트에 있는지 확인
+    //       docker images 34.64.159.32:30110/fw-images:test
+    //     '''
     //   }
     // }
+
+    stage('Update Manifests & Push') {
+      container('argocd') {
+        sshagent(credentials: ['github-ssh-key']) {
+          sh """
+            set -eux
+            git config --global user.email "ci@example.com"
+            git config --global user.name "CI Bot"
+
+            # 이미지 태그 동적 치환
+            sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
+
+            git add k8s/deployment.yaml
+            git commit -m "ci: bump image tag to ${TAG}"
+            git push git@github.com:OhHyerin/rke2-cicd-sample.git HEAD:main
+          """
+        }
+      }
+    }
 
 stage('Trigger ArgoCD Sync') {
   container('argocd') {
