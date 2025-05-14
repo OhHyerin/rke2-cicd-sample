@@ -22,7 +22,7 @@ podTemplate(
       name: 'argocd',
       image: 'alpine:3.18',
       command: 'sh',
-      args: '-c "apk add --no-cache curl && sleep infinity"',
+      args: '-c "apk add --no-cache git curl openssh && sleep infinity"',
       ttyEnabled: true
     )
   ],
