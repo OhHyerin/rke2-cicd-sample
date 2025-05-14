@@ -5,7 +5,7 @@ metadata:
   labels:
     app: fw-images
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: fw-images
