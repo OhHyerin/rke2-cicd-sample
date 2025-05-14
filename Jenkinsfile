@@ -96,6 +96,7 @@ podTemplate(
         )]) {
           sh '''
             set -eux
+            git config --global --add safe.directory /home/jenkins/agent/workspace/dev-fw-build
             git config --global user.email "ci@example.com"
             git config --global user.name "CI Bot"
 
