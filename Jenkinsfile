@@ -89,7 +89,7 @@ podTemplate(
 
     stage('Update Manifests & Push') {
       container('argocd') {
-        sshagent(credentials: ['github-ssh-key']) {
+        sshagent(credentials: ['github-pat-ohhyerin']) {
           sh """
             set -eux
             git config --global user.email "ci@example.com"
