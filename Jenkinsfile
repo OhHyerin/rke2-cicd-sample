@@ -89,20 +89,25 @@ podTemplate(
 
     stage('Update Manifests & Push') {
       container('argocd') {
-        sshagent(credentials: ['github-pat-ohhyerin']) {
-          sh """
+        withCredentials([usernamePassword(
+          credentialsId: 'github-idpw',
+          usernameVariable: 'GIT_USER',
+          passwordVariable: 'GIT_PASS'
+        )]) {
+          sh '''
             set -eux
             git config --global user.email "ci@example.com"
             git config --global user.name "CI Bot"
 
-            # 이미지 태그 동적 치환
+            git remote set-url origin https://${GIT_USER}:${GIT_PASS}@github.com/OhHyerin/rke2-cicd-sample.git
+
             sed -i "s|image: 34.64.159.32:30110/fw-images:.*|image: 34.64.159.32:30110/fw-images:${TAG}|" k8s/deployment.yaml
 
             git add k8s/deployment.yaml
             git commit -m "ci: bump image tag to ${TAG}"
-            git push git@github.com:OhHyerin/rke2-cicd-sample.git HEAD:main
-          """
-        }
+            git push origin HEAD:main
+          '''
+    }
       }
     }
 
