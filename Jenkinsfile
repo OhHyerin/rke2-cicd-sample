@@ -3,7 +3,7 @@ podTemplate(
   containers: [
     containerTemplate(
       name: 'jnlp',
-      image: 'jenkins/inbound-agent:latest',
+      image: 'jenkins/inbound-agent:3309.v27b9314fd1a4',
       args: '${computer.jnlpmac} ${computer.name}'
     ),
     containerTemplate(
