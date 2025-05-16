@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: fw-images
-          image: 34.64.159.32:30110/fw-images:59fa139
+          image: 34.64.159.32:30110/fw-images:37e4803
           imagePullPolicy: Always
           ports:
             - containerPort: 80
